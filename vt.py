@@ -3,7 +3,7 @@
 # Built on VT Test Script from: Adam Meyers ~ CrowdStrike & Chris Clark ~ GD Fidelis CyberSecurity
 
 
-import json, urllib, urllib2, argparse, hashlib, re, sys, csv
+import json, urllib, urllib2, argparse, hashlib, re, sys, csv, time
 from pprint import pprint
 
 class vtAPI():
@@ -63,17 +63,29 @@ def md5sum(filename):
       m.update(data)
   return m.hexdigest()
 
+#======== MD5 PARSE=========
+# Summary: This function takes a hash from the
+#   CL and runs it against the VirusTotal DB.
+#
+# Args: it (getUrlReport), md5 (md5 from CL),
+#    verbose (CL flag), jsondump, (CL flag)
+#
+# Return: Nothing
+#############################################
+
 def parse(it, md5, verbose, jsondump):
   if it['response_code'] == 0:
     print md5 + " -- Not Found in VT"
     return 0
   print "\n\tResults for MD5: ",it['md5'],"\n\n\tDetected by: ",it['positives'],'/',it['total'],'\n'
 
+# The code below is an example if you want to see results from a specific source:
+
   #if 'Sophos' in it['scans']:
     #print '\tSophos Detection:',it['scans']['Sophos']['result'],'\n'
 
-  # Quick view prints only in cases where the hash returns as true.
 
+  # Quick view prints only in cases where the hash returns as true.
   print '\n\tQuick View:\n'
 
   for x in it['scans']:
@@ -99,6 +111,15 @@ def parse(it, md5, verbose, jsondump):
 
 
 #======== URL FUNCTION =========
+# Summary: This function takes a URL from the
+#   CL and runs it against the VirusTotal DB.
+#
+# Args: it (getUrlReport), url (URL from CL),
+#    verbose (CL flag), jsondump, (CL flag)
+#
+# Return: Nothing
+#############################################
+
 
 def parseURL(it, url, verbose, jsondump):
     if it['response_code'] == 0:
@@ -127,7 +148,15 @@ def parseURL(it, url, verbose, jsondump):
 
 #============END of URL FUNCTION======================
 
-#======== IP FUNCTION =========
+#======== IP FUNCTION ======================
+# Summary: This function takes an ip via the
+#   command line and runs it against VirusTotal
+#   the database.
+#
+# Args: it (getIPReport) & IP (IP address from CL)
+#
+# Return: # of hits & # of avg hit chance
+#############################################
 
 def parseIP(it, IP):
     if it['response_code'] == 0:
@@ -150,31 +179,57 @@ def parseIP(it, IP):
 
 
     if "detected_urls" in it:
-        TPositives = 0.0
-        TTotal = 0.0
         Chance = 0.0
+        avgChance = 0.0
+        numHits = 0.0
         print "\n\t====Detected URLs====\n"
-        print "\t%-13s %-13s %-20s %-19s" % ("Chance","Detections","Scan Date","URL")
+        print "\t%-12s %-20s %-25s %-26s" % ("Chance","Detections","Scan Date","URL")
         for x in it["detected_urls"]:
             num1 = int(x["positives"])
             num2 = int(x["total"])
             Chance = ((float(num1))/(float(num2)))*100
-            print "\t%-9d %-6d / %-9d %-20s %s" % (Chance, x["positives"],x["total"],x["scan_date"],x["url"],)
+            print "\t%-13d %d / %-9d %-20s %s" % (Chance, x["positives"],x["total"],x["scan_date"],x["url"],)
+            avgChance = (avgChance + Chance)
+            numHits += 1
         print
-        
+
+        if numHits < 1:
+            avgChance = 0
+        else:
+            avgChance = (avgChance / numHits)
+
+        print "\nAverage # of hits: " + str(numHits) + "     Average hit chance: " + str(avgChance) + "\n\n"
+        return "Average # of hits: " + str(numHits) + "     Average hit chance: " + str(avgChance)
+
 
 #============END of IP FUNCTION======================
 
 #======== OPEN IP CSV LIST FUNCTION =========
+# Summary: This function takes a csv file with
+#   IP addresses in the first column and runs
+#   them with the parseIP function.
+#
+# Args: FileName (given after -c flag)
+#
+# Return: Nothing - writes to hits.csv
+#############################################
+
 
 def parseCSVIP(FileName):
     file = open(FileName)
     csv_file = csv.reader(file)
+    csv_file2 = open('hits.csv', 'w')
 
     for row in csv_file:
-        print row
+        vt = vtAPI()
+        IP = vt.getIPReport(row[0])
+        string = "    " + row[0] + "    " + parseIP(IP, row[0]) + "\n"
+        csv_file2.write(string)
+        time.sleep(15) #sleeps for 15 seconds because of free API - get rid of this if paid
 
+    csv_file2.close()
 
+    print "\n\n------ IP Report is in hits.csv ------\n\n"
 
 
 #============END of IP CSV LIST FUNCTION======================
