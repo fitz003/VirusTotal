@@ -223,7 +223,7 @@ def parseCSVIP(FileName):
     for row in csv_file:
         vt = vtAPI()
         IP = vt.getIPReport(row[0])
-        string = "    " + row[0] + "    " + parseIP(IP, row[0]) + "\n"
+        string = "    " + row[0] + "    " + str(parseIP(IP, row[0])) + "\n"
         csv_file2.write(string)
         time.sleep(15) #sleeps for 15 seconds because of free API - get rid of this if paid
 
