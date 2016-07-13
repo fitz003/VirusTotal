@@ -8,7 +8,8 @@ from pprint import pprint
 
 class vtAPI():
     def __init__(self):
-        self.api = 'ADD YOUR KEY HERE'
+        #self.api = 'ADD YOUR KEY HERE'
+        self.api = '51ac70976e31b552016385128cb3a6356252065b42f60b2f1a94d7b8932d87df'
         self.base = 'https://www.virustotal.com/vtapi/v2/'
 
     def getReport(self,md5):
@@ -161,7 +162,7 @@ def parseURL(it, url, verbose, jsondump):
 def parseIP(it, IP):
     if it['response_code'] == 0:
         print IP + " -- Not Found in VT"
-        return 0
+        return "Not Found in VT" + "," + "Not Found in VT"
 
     print "\n\tResults for IP:",IP,"\n"
 
@@ -175,8 +176,6 @@ def parseIP(it, IP):
         print "\t\t%-13s %-20s %-19s" % ("Detections","Scan Date","sha256")
         for x in IP["undetected_downloaded_samples"]:
             print "\t\t%d / %-9d %-20s %s" % (x["positives"],x["total"],x["date"],x["sha256"])
-
-
 
     if "detected_urls" in it:
         Chance = 0.0
@@ -198,8 +197,8 @@ def parseIP(it, IP):
         else:
             avgChance = (avgChance / numHits)
 
-        print "\nAverage # of hits: " + str(numHits) + "     Average hit chance: " + str(avgChance) + "\n\n"
-        return "Average # of hits: " + str(numHits) + "     Average hit chance: " + str(avgChance)
+        print "\n# of Detected URLs: " + str(numHits) + "\tAvg Malicious Chance: " + str(avgChance) + "\n\n"
+        return str(numHits) + "," + str(avgChance)
 
 
 #============END of IP FUNCTION======================
@@ -211,25 +210,26 @@ def parseIP(it, IP):
 #
 # Args: FileName (given after -c flag)
 #
-# Return: Nothing - writes to hits.csv
+# Return: Nothing - writes to CSV_hits.csv
 #############################################
 
 
 def parseCSVIP(FileName):
     file = open(FileName)
     csv_file = csv.reader(file)
-    csv_file2 = open('hits.csv', 'w')
+    csv_file2 = open('CSV_hits.csv', 'w')
+    csv_file2.write("Dest IP: " + "," + "# of Detected URLs: " + "," + "Avg Malicious Chance: " + "\n")
 
     for row in csv_file:
         vt = vtAPI()
         IP = vt.getIPReport(row[0])
-        string = "    " + row[0] + "    " + parseIP(IP, row[0]) + "\n"
+        string = row[0] + "," + str(parseIP(IP, row[0])) + "\n"
         csv_file2.write(string)
         time.sleep(15) #sleeps for 15 seconds because of free API - get rid of this if paid
 
     csv_file2.close()
 
-    print "\n\n------ IP Report is in hits.csv ------\n\n"
+    print "\n\n------ IP Report is in CSV_hits.csv ------\n\n"
 
 
 #============END of IP CSV LIST FUNCTION======================
